@@ -1,4 +1,4 @@
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum RubiksAction {
 	Left{ prime: bool, wide: bool },
 	Right{ prime: bool, wide: bool },

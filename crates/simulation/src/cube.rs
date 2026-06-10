@@ -1,4 +1,4 @@
-use crate::{cube_colors::CubeColors, keyframe::{KeyFrame, KeyFrameResult}};
+use crate::{cube_colors::{CubeColor, CubeColors}, keyframe::{KeyFrame, KeyFrameResult}, solver::Sides};
 
 use three_d::*;
 
@@ -28,7 +28,8 @@ type CubeGm = Gm<Mesh, ColorMaterial>;
 
 pub struct Cube {
 	gm: CubeGm,
-	animation: Option<Box<CubeAnimation>>,
+	animation: Option<CubeAnimation>,
+	sides: Sides,
 }
 
 impl Cube {
@@ -47,6 +48,7 @@ impl Cube {
 		Cube {
 			gm: CubeGm::new(Mesh::new(&context, &mesh), material),
 			animation: None,
+			sides: Sides::default(),
 		}
 	}
 
@@ -95,12 +97,12 @@ impl Cube {
 		let mut positions  = Vec::with_capacity(4 * 6);
 		let mut colors  = Vec::with_capacity(4 * 6);
 
-		Self::add_plane(&mut indices, &mut positions, &mut colors, center + vec3(-0.5,  0.0,  0.0), Quat::from_angle_y(degrees(-90.0)), cube_colors.left.to_srgba());
-		Self::add_plane(&mut indices, &mut positions, &mut colors, center + vec3( 0.5,  0.0,  0.0), Quat::from_angle_y(degrees( 90.0)), cube_colors.right.to_srgba());
-		Self::add_plane(&mut indices, &mut positions, &mut colors, center + vec3( 0.0, -0.5,  0.0), Quat::from_angle_x(degrees( 90.0)), cube_colors.down.to_srgba());
-		Self::add_plane(&mut indices, &mut positions, &mut colors, center + vec3( 0.0,  0.5,  0.0), Quat::from_angle_x(degrees(-90.0)), cube_colors.up.to_srgba());
-		Self::add_plane(&mut indices, &mut positions, &mut colors, center + vec3( 0.0,  0.0, -0.5), Quat::from_angle_y(degrees(180.0)), cube_colors.back.to_srgba());
-		Self::add_plane(&mut indices, &mut positions, &mut colors, center + vec3( 0.0,  0.0,  0.5), Quat::zero(),                       cube_colors.front.to_srgba());
+		Self::add_plane(&mut indices, &mut positions, &mut colors, center + vec3(-0.5,  0.0,  0.0), Quat::from_angle_y(degrees(-90.0)), CubeColor::to_srgba(cube_colors.left));
+		Self::add_plane(&mut indices, &mut positions, &mut colors, center + vec3( 0.5,  0.0,  0.0), Quat::from_angle_y(degrees( 90.0)), CubeColor::to_srgba(cube_colors.right));
+		Self::add_plane(&mut indices, &mut positions, &mut colors, center + vec3( 0.0, -0.5,  0.0), Quat::from_angle_x(degrees( 90.0)), CubeColor::to_srgba(cube_colors.down));
+		Self::add_plane(&mut indices, &mut positions, &mut colors, center + vec3( 0.0,  0.5,  0.0), Quat::from_angle_x(degrees(-90.0)), CubeColor::to_srgba(cube_colors.up));
+		Self::add_plane(&mut indices, &mut positions, &mut colors, center + vec3( 0.0,  0.0, -0.5), Quat::from_angle_y(degrees(180.0)), CubeColor::to_srgba(cube_colors.back));
+		Self::add_plane(&mut indices, &mut positions, &mut colors, center + vec3( 0.0,  0.0,  0.5), Quat::zero(),                       CubeColor::to_srgba(cube_colors.front));
 
 		CpuMesh {
 			indices: Indices::U16(indices),
@@ -114,33 +116,39 @@ impl Cube {
 		let angle: Rad<f32> = degrees(if cw { -90.0 } else { 90.0 }).into();
 
 		if duration > 0.0 {
-			self.animation = Some(Box::new(CubeAnimation::new(self, start_time, duration, angle, CubeAnimationType::RotateX)));
+			self.animation = Some(CubeAnimation::new(self, start_time, duration, angle, CubeAnimationType::RotateX));
 		} else {
 			let prev = self.gm.transformation();
 			self.gm.set_transformation(Mat4::from_angle_x(angle) * prev);
 		}
+
+		self.sides = self.sides.rotated_x(cw);
 	}
 
 	pub fn rotate_y(&mut self, cw: bool, start_time: f64, duration: f64) {
 		let angle: Rad<f32> = degrees(if cw { -90.0 } else { 90.0 }).into();
 
 		if duration > 0.0 {
-			self.animation = Some(Box::new(CubeAnimation::new(self, start_time, duration, angle, CubeAnimationType::RotateY)));
+			self.animation = Some(CubeAnimation::new(self, start_time, duration, angle, CubeAnimationType::RotateY));
 		} else {
 			let prev = self.gm.transformation();
 			self.gm.set_transformation(Mat4::from_angle_y(angle) * prev);
 		}
+
+		self.sides = self.sides.rotated_y(cw);
 	}
 
 	pub fn rotate_z(&mut self, cw: bool, start_time: f64, duration: f64) {
 		let angle: Rad<f32> = degrees(if cw { -90.0 } else { 90.0 }).into();
 
 		if duration > 0.0 {
-			self.animation = Some(Box::new(CubeAnimation::new(self, start_time, duration, angle, CubeAnimationType::RotateZ)));
+			self.animation = Some(CubeAnimation::new(self, start_time, duration, angle, CubeAnimationType::RotateZ));
 		} else {
 			let prev = self.gm.transformation();
 			self.gm.set_transformation(Mat4::from_angle_z(angle) * prev);
 		}
+
+		self.sides = self.sides.rotated_z(cw);
 	}
 
 	pub fn update_animation(&mut self, current_time: f64) -> bool {
@@ -165,6 +173,10 @@ impl Cube {
 		}
 
 		ended
+	}
+
+	pub fn get_sides(&self) -> Sides {
+		self.sides
 	}
 }
 

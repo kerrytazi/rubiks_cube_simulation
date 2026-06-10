@@ -2,6 +2,7 @@ use three_d::*;
 use crate::cube::Cube;
 use crate::cube_colors::{CubeColor, CubeColors};
 use crate::rubiks_action::RubiksAction;
+use crate::solver::Solver;
 
 pub struct RubiksCube {
 	cubes: [[[Box<Cube>; 3]; 3]; 3],
@@ -15,12 +16,12 @@ impl RubiksCube {
 					let center = vec3(x as f32 - 1.0, y as f32 - 1.0, z as f32 - 1.0) * 1.02;
 
 					Box::new(Cube::new(&context, center, CubeColors {
-						left: if x == 0 { CubeColor::Orange } else { CubeColor::None },
-						right: if x == 2 { CubeColor::Red } else { CubeColor::None },
-						down: if y == 0 { CubeColor::Yellow } else { CubeColor::None },
-						up: if y == 2 { CubeColor::White } else { CubeColor::None },
-						back: if z == 0 { CubeColor::Blue } else { CubeColor::None },
-						front: if z == 2 { CubeColor::Green } else { CubeColor::None },
+						left: if x == 0 { Some(CubeColor::Orange) } else { None },
+						right: if x == 2 { Some(CubeColor::Red) } else { None },
+						down: if y == 0 { Some(CubeColor::Yellow) } else { None },
+						up: if y == 2 { Some(CubeColor::White) } else { None },
+						back: if z == 0 { Some(CubeColor::Blue) } else { None },
+						front: if z == 2 { Some(CubeColor::Green) } else { None },
 					}))
 				})
 			})
@@ -94,6 +95,18 @@ impl RubiksCube {
 		}
 
 		ended
+	}
+
+	pub fn to_solver(&self) -> Solver {
+		let cubes = std::array::from_fn(|x| {
+			std::array::from_fn(|y| {
+				std::array::from_fn(|z| {
+					self.cubes[x][y][z].get_sides()
+				})
+			})
+		});
+
+		Solver { cubes }
 	}
 
 	fn swap(&mut self, index1: (usize, usize, usize), index2: (usize, usize, usize)) {

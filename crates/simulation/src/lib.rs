@@ -4,16 +4,24 @@ mod cube;
 mod keyframe;
 mod rubiks_action;
 mod rubiks_cube;
+mod solver;
 mod utils;
 
 use rubiks_action::RubiksAction;
 use rubiks_cube::RubiksCube;
+
+use std::{sync::{Arc, atomic::AtomicBool}};
 
 use rand::RngExt;
 use three_d::*;
 
 const DEFAULT_ANIMATION_DURATION_MS: f64 = 125.0;
 const DEFAULT_WIDE_NOTATION_W: bool = false;
+
+struct SolverThread {
+	thread: std::thread::JoinHandle<Option<Vec<RubiksAction>>>,
+	cancel_flag: Arc<AtomicBool>,
+}
 
 struct Simulation {
 	context: Context,
@@ -32,6 +40,9 @@ struct Simulation {
 	axes: Gm<InstancedMesh, ColorMaterial>,
 	history_text_left: Gm<Mesh, ColorMaterial>,
 	history_text_right: Gm<Mesh, ColorMaterial>,
+	solver_text: Gm<Mesh, ColorMaterial>,
+
+	solver_thread: Option<SolverThread>,
 
 	show_axes: bool,
 }
@@ -49,6 +60,28 @@ impl Simulation {
 			self.handle_event(&event, frame_input.accumulated_time);
 		}
 
+		if let Some(prev_solver_thread) = self.solver_thread.take_if(|prev| prev.thread.is_finished()) {
+			if let Ok(thread_result) = prev_solver_thread.thread.join() {
+				if let Some(actions) = thread_result {
+					let mut text_actions = String::new();
+
+					for action in actions {
+						text_actions.push_str(action.to_string_notation(DEFAULT_WIDE_NOTATION_W));
+						text_actions.push_str(" ");
+					}
+
+					self.solver_text = self.recreate_text(&text_actions, Srgba::new_opaque(0, 128, 0));
+				} else {
+					self.solver_text = self.recreate_text("No solutions", Srgba::RED);
+				}
+			} else {
+				self.solver_text = self.recreate_text("Solver thread panicked", Srgba::RED);
+			}
+
+			let prev_transform = self.solver_text.transformation();
+			self.solver_text.set_transformation(Mat4::from_translation(vec3(0.0, -30.0, 0.0)) * prev_transform);
+		}
+
 		let screen = frame_input.screen();
 
 		screen.clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0));
@@ -59,7 +92,7 @@ impl Simulation {
 			screen.render(&self.camera, self.axes.into_iter(), &[]);
 		}
 
-		screen.render(&self.camera_text, [&self.history_text_left, &self.history_text_right], &[]);
+		screen.render(&self.camera_text, [&self.history_text_left, &self.history_text_right, &self.solver_text], &[]);
 
 		FrameOutput::default()
 	}
@@ -162,6 +195,7 @@ impl Simulation {
 			self.add_animation(current_time, self.history[self.past_active_history_item - 1].inverse());
 			self.past_active_history_item -= 1;
 			self.recreate_history();
+			self.recreate_solver(true);
 			true
 		} else {
 			false
@@ -173,6 +207,7 @@ impl Simulation {
 			self.past_active_history_item += 1;
 			self.add_animation(current_time, self.history[self.past_active_history_item - 1]);
 			self.recreate_history();
+			self.recreate_solver(true);
 			true
 		} else {
 			false
@@ -183,6 +218,7 @@ impl Simulation {
 		self.history.clear();
 		self.past_active_history_item = 0;
 		self.recreate_history();
+		self.recreate_solver(false);
 		self.rubiks = RubiksCube::new(&self.context);
 	}
 
@@ -231,6 +267,7 @@ impl Simulation {
 		self.add_animation(current_time, action);
 		self.past_active_history_item += 1;
 		self.recreate_history();
+		self.recreate_solver(true);
 	}
 
 	fn recreate_text(&mut self, s: &str, color: Srgba) -> Gm<Mesh, ColorMaterial> {
@@ -252,6 +289,46 @@ impl Simulation {
 		);
 
 		text
+	}
+
+	fn recreate_solver(&mut self, try_solve: bool) {
+		if cfg!(target_arch = "wasm32") {
+			return;
+		}
+
+		if let Some(prev_solver_thread) = self.solver_thread.take() {
+			prev_solver_thread.cancel_flag.store(true, std::sync::atomic::Ordering::SeqCst);
+		}
+
+		let solver = self.rubiks.to_solver();
+
+		if solver.is_solved() {
+			self.solver_text = self.recreate_text("Solved", Srgba::new_opaque(0, 128, 0));
+			let prev_transform = self.solver_text.transformation();
+			self.solver_text.set_transformation(Mat4::from_translation(vec3(0.0, -30.0, 0.0)) * prev_transform);
+			return;
+		}
+
+		if !try_solve {
+			self.solver_text = self.recreate_text("", Srgba::BLACK);
+			return;
+		}
+
+		self.solver_text = self.recreate_text("Solving...", Srgba::new_opaque(0, 128, 0));
+		let prev_transform = self.solver_text.transformation();
+		self.solver_text.set_transformation(Mat4::from_translation(vec3(0.0, -30.0, 0.0)) * prev_transform);
+
+		let cancel_flag = Arc::new(AtomicBool::new(false));
+		let cancel_flag_2 = cancel_flag.clone();
+
+		let thread = std::thread::spawn(move || {
+			solver.try_solve(6, &Some(cancel_flag_2))
+		});
+
+		self.solver_thread = Some(SolverThread {
+			thread,
+			cancel_flag,
+		});
 	}
 
 	fn recreate_history(&mut self) {
@@ -287,9 +364,9 @@ pub struct SimulationWindow {
 impl SimulationWindow {
 	pub fn new(window_name: &str) -> Result<Self, Box<dyn std::error::Error>> {
 		let window = Window::new(WindowSettings {
-				title: window_name.to_string(),
-				..Default::default()
-			})?;
+			title: window_name.to_string(),
+			..Default::default()
+		})?;
 
 		let context = window.gl();
 
@@ -327,6 +404,13 @@ impl SimulationWindow {
 				..Default::default()
 			},
 		);
+		let solver_text = Gm::new(
+			Mesh::new(&context, &text_generator.generate("", TextLayoutOptions::default())),
+			ColorMaterial {
+				color: Srgba::BLACK,
+				..Default::default()
+			},
+		);
 
 		Ok(SimulationWindow {
 			window,
@@ -344,6 +428,8 @@ impl SimulationWindow {
 				axes,
 				history_text_left,
 				history_text_right,
+				solver_text,
+				solver_thread: None,
 				show_axes: false,
 			},
 		})
