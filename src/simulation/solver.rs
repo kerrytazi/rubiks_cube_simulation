@@ -1,6 +1,6 @@
 use std::sync::{Arc, atomic::AtomicBool};
 
-use crate::rubiks_action::RubiksAction;
+use super::rubiks_action::RubiksAction;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Side {

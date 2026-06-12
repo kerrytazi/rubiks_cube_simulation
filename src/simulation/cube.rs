@@ -1,4 +1,4 @@
-use crate::{cube_colors::{CubeColor, CubeColors}, keyframe::{KeyFrame, KeyFrameResult}, solver::Sides};
+use super::{cube_colors::{CubeColor, CubeColors}, keyframe::{KeyFrame, KeyFrameResult}, solver::Sides};
 
 use three_d::*;
 

@@ -1,6 +1,6 @@
 use three_d::Srgba;
 
-use crate::solver::Side;
+use super::solver::Side;
 
 #[derive(Clone, Copy)]
 pub enum CubeColor {

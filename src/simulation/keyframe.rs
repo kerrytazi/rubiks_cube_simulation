@@ -1,4 +1,4 @@
-use crate::anim_function::AnimFunction;
+use super::anim_function::AnimFunction;
 
 pub struct KeyFrame {
 	start_time: f64,

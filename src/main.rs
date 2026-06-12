@@ -1,3 +1,5 @@
+mod simulation;
+
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 	#[cfg(debug_assertions)]
 	std::panic::set_hook(Box::new(|panic_info| {

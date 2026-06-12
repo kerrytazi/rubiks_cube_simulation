@@ -2,21 +2,21 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "lldb Debug executable 'app'",
+			"name": "lldb Debug executable",
 			"type": "lldb",
 			"request": "launch",
 			"cargo": {
-				"args": ["run", "--package=app"]
+				"args": ["run", "--bin=rubiks_cube_simulation"]
 			},
 			"args": [],
 			"terminal": "console",
 			//"postDebugTask": "Close Debug Terminal"
 		},
 		{
-			"name": "msvc Debug executable 'app'",
+			"name": "msvc Debug executable",
 			"type": "cppvsdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/target/debug/app.exe",
+			"program": "${workspaceFolder}/target/debug/rubiks_cube_simulation.exe",
 			"args": [],
 			"cwd": "${workspaceRoot}"
 		}

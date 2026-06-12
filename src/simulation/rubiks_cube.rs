@@ -1,8 +1,8 @@
 use three_d::*;
-use crate::cube::Cube;
-use crate::cube_colors::{CubeColor, CubeColors};
-use crate::rubiks_action::RubiksAction;
-use crate::solver::Solver;
+use super::cube::Cube;
+use super::cube_colors::{CubeColor, CubeColors};
+use super::rubiks_action::RubiksAction;
+use super::solver::Solver;
 
 pub struct RubiksCube {
 	cubes: [[[Box<Cube>; 3]; 3]; 3],

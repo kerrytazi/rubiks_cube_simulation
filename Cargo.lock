@@ -55,13 +55,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
-name = "app"
-version = "0.1.0"
-dependencies = [
- "simulation",
-]
-
-[[package]]
 name = "approx"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1112,6 +1105,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rubiks_cube_simulation"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "getrandom 0.4.2",
+ "rand",
+ "three-d",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "rustversion"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1207,14 +1211,6 @@ name = "simd-adler32"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "703d5c7ef118737c72f1af64ad2f6f8c5e1921f818cdcb97b8fe6fc69bf66214"
-
-[[package]]
-name = "simulation"
-version = "0.1.0"
-dependencies = [
- "rand",
- "three-d",
-]
 
 [[package]]
 name = "skrifa"
@@ -1638,16 +1634,6 @@ dependencies = [
  "lazy_static",
  "log",
  "pkg-config",
-]
-
-[[package]]
-name = "web"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "getrandom 0.4.2",
- "simulation",
- "wasm-bindgen",
 ]
 
 [[package]]

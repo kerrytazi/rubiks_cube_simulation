@@ -1,2 +1,2 @@
 target
-crates/web/pkg/wasm
+web/pkg/wasm

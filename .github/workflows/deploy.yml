@@ -32,8 +32,8 @@ jobs:
 
       - name: Build WASM module
         run: |
-          cargo +nightly build --package web --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
-          wasm-bindgen --target web --out-dir crates/web/pkg/wasm target/wasm32-unknown-unknown/release/web.wasm
+          cargo +nightly build --lib --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
+          wasm-bindgen --target web --out-dir web/pkg/wasm target/wasm32-unknown-unknown/release/rubiks_cube_simulation.wasm
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
